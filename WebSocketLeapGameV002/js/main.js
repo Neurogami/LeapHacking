@@ -384,7 +384,7 @@ function prepareLeap(){
 
   // alert(leftX + "; " + rightX + "; " + bottomY + "; " + topY);
   region = new Leap.UI.Region([leftX, bottomY, -100], [rightX, topY, 300])
-    controller.addStep(new Leap.UI.Cursor())
+  controller.addStep(new Leap.UI.Cursor())
 
 
 }
@@ -392,7 +392,6 @@ function prepareLeap(){
 
 /*****************************************************************************/
 function startGame() {  
-
 
   try {
     prepareLeap();
@@ -428,22 +427,22 @@ function startGame() {
 
 
   controller.loop(function(frame) {
-      if (frame.cursorPosition) {
+    if (frame.cursorPosition) {
       var position = region.mapToXY(frame.cursorPosition, canvas.width, canvas.height)
       if (1 == frame.fingers.length ) {
-      //  We need to map these values in the exact same way as leap.js does it. 
-      var position = region.mapToXY(frame.cursorPosition, canvas.width, canvas.height)
-      Handlers['walkto']( [position[0], position[1]] );
+        //  We need to map these values in the exact same way as leap.js does it. 
+        var position = region.mapToXY(frame.cursorPosition, canvas.width, canvas.height)
+        Handlers['walkto']( [position[0], position[1]] );
       }
 
       if (2 == frame.fingers.length ) {
-      var v1 = new Vector.create(frame.fingers[0].tipPosition);
-      var v2 = new Vector.create(frame.fingers[1].tipPosition);
-      var d = v1.distanceFrom(v2) * 0.15;
-      Handlers['grow']( d );
+        var v1 = new Vector.create(frame.fingers[0].tipPosition);
+        var v2 = new Vector.create(frame.fingers[1].tipPosition);
+        var d = v1.distanceFrom(v2) * 0.15;
+        Handlers['grow']( d );
       }
-      }
-      })
+    }
+  })
 }
 
 /*****************************************************************************/
