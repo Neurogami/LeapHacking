@@ -1,19 +1,3 @@
-
-////////
-/*
-   Pointable.prototype.distanceFrom = function(f2) {
-   var v1 = new Vector.create(this.tipPosition);
-   var v2 = new Vector.create(f2.tipPosition);
-   return p1.distanceFrom(v2);
-   }
-   */
-
-//////
-//
-//
-//
-var webSocket;
-
 var globalMusic;
 var critterRunMusic;
 
@@ -32,300 +16,325 @@ var context;
 var controller; // Leap thing
 var region ; // Leap stuff
 
-function debug(str){ $("#debug").append("<p>"+str+"</p>"); };
+function debug(str){ console.log(str); }; 
+
+var Skullhead = function(){
+  var bitmapAnim = null, 
+      growing = 12,
+      walkingTo =  false,
+      defaultScale = 2.0,
+      lastGrowMessage = new Date().getTime() / 1000,
+      lastWalkMessage = new Date().getTime() / 1000,
+      minGrowCallsTime = 1.0,
+      minWalkCallsTime = 1.0,
+      desiredX = null,
+      desiredY = null,
+      spriteImage = new Image();
 
 
-Skullhead = {
-bitmapAnim: null, 
-            growing : false,
-            walkingTo : false,
-            defaultScale : 2.0,
-            lastGrowMessage : new Date().getTime() / 1000,
-            lastWalkMessage : new Date().getTime() / 1000,
-            minGrowCallsTime : 1.0,
-            minWalkCallsTime : 1.0,
-            desiredX : null,
-            desiredY : null,
+  var move = function () {
+    if(bitmapAnim) {
+      if(!growing && walkingTo) { moveTo(desiredX, desiredY); }
+    }
+  },
 
-            spriteImage : new Image(),
+      isGrowing = function() {
+        return growing;
+      },
 
-            move: function () {
-              if(this.bitmapAnim) {
-                if(!this.growing && this.walkingTo) { this.moveTo(this.desiredX, this.desiredY); }
-              }
-            },
+      moveTo = function (newX, newY) {
+        var x = parseInt(newX);
+        var y = parseInt(newY);
 
-moveTo: function (newX, newY) {
-          var x = parseInt(newX);
-          var y = parseInt(newY);
+        var maxDenom = 2.0;
+        if (y > screen_height ) { y = screen_height;  }
+        if (x > screen_width ) { x = screen_width;  }
 
-          var maxDenom = 2.0;
-          if (y > screen_height ) { y = screen_height;  }
-          if (x > screen_width ) { x = screen_width;  }
+        if (y < 0 ) { y = 0 }
+        if (x < 0 ) { x = 0;  }
 
-          if (y < 0 ) { y = 0 }
-          if (x < 0 ) { x = 0;  }
+        var deltaX = (x - bitmapAnim.x );
+        var deltaY = (y - bitmapAnim.y );
 
-          var deltaX = (x - this.bitmapAnim.x );
-          var deltaY = (y - this.bitmapAnim.y );
+        var ratio = (Math.abs(deltaX)/Math.abs(deltaY));
 
-          var ratio = (Math.abs(deltaX)/Math.abs(deltaY));
+        if (ratio < 1/maxDenom ) { ratio = 1/maxDenom ; }
+        if (ratio > maxDenom ) { ratio = maxDenom ; }
 
-          if (ratio < 1/maxDenom ) { ratio = 1/maxDenom ; }
-          if (ratio > maxDenom ) { ratio = maxDenom ; }
+        if (Math.abs(deltaX) < bitmapAnim.vX*1.5 ) {
+          // no change in bitmapAnim.x, do nothing
+        } else if (deltaX > 0) {
+          if (bitmapAnim.x < screen_width  - (spriteWidth/2)) { bitmapAnim.x += (bitmapAnim.vX*ratio); }
+        } else { // decrement X if there is room to move 
+          if (bitmapAnim.x > (spriteWidth/2))                 { bitmapAnim.x -= (bitmapAnim.vX*ratio); }
+        }
 
-          if (Math.abs(deltaX) < this.bitmapAnim.vX*1.5 ) {
-            // no change in bitmapAnim.x, do nothing
-          } else if (deltaX > 0) {
-            if (this.bitmapAnim.x < screen_width  - (spriteWidth/2)) { this.bitmapAnim.x += (this.bitmapAnim.vX*ratio); }
-          } else { // decrement X if there is room to move 
-            if (this.bitmapAnim.x > (spriteWidth/2))                 { this.bitmapAnim.x -= (this.bitmapAnim.vX*ratio); }
-          }
+        if (Math.abs(deltaY) < bitmapAnim.vX*2 ) {
+          // no change in bitmapAnim.y
+        } else if (deltaY > 0) {
+          if (bitmapAnim.y < screen_height  - (spriteHeight/2)) { bitmapAnim.y += (bitmapAnim.vX/ratio ); }
+        } else {
+          if (bitmapAnim.y > (spriteHeight/2))                  { bitmapAnim.y -= (bitmapAnim.vX/ratio); }
+        }
+      },
 
-          if (Math.abs(deltaY) < this.bitmapAnim.vX*2 ) {
-            // no change in bitmapAnim.y
-          } else if (deltaY > 0) {
-            if (this.bitmapAnim.y < screen_height  - (spriteHeight/2)) { this.bitmapAnim.y += (this.bitmapAnim.vX/ratio ); }
-          } else {
-            if (this.bitmapAnim.y > (spriteHeight/2))                  { this.bitmapAnim.y -= (this.bitmapAnim.vX/ratio); }
-          }
-        },
+      loadImage = function(url) {
+        spriteImage.src = url; 
+      },
 
-loadImage: function(url) {
-             this.spriteImage.src = url; 
-           },
+      walkTo =  function(x, y) {
 
-walkTo:  function(x, y) {
+        if (!bitmapAnim) {return;}
 
-           if (!this.bitmapAnim) {return;}
-
-
-           var timeNow = new Date().getTime() / 1000;
-           var tDelta = timeNow  - this.lastWalkMessage;
-
-           this.growing   = false;
-           this.walkingTo = true;
-
-           this.bitmapAnim.scaleX = this.defaultScale;
-           this.bitmapAnim.scaleY = this.defaultScale;
-
-           // Actual movement is based on clock ticks; it's not "real time".
-           // That means that instead of just moving the sprite to the new location in
-           // a single smooth action, we instead set the desired new location X and Y.
-           // tick() then invokes move() which will (ulitmately) use these properties
-           // to step the sprite to a new location. 
-           this.desiredX = parseInt(x);
-           this.desiredY = parseInt(y);
-
-           if (tDelta  < this.minGrowCallsTime ) { return }
-           this.lastWalkMessage = timeNow;
-           this.bitmapAnim.gotoAndPlay("walk"); 
-         },
-
-onImageLoaded: function(evt) { 
-                 var spriteSheet;
-
-                 try {
-                   spriteSheet = new createjs.SpriteSheet({ images: [evt.target],
-                       frames: { width: spriteWidth, height: spriteHeight, regX: spriteWidth/2, regY: spriteHeight }, 
-                       animations: { walk: [0, 8, "walk", 6],
-                       grow: [9, 20, "grow", 4]
-                       } });
-                 } catch(e) {
-                   errorMsg("Error creating spriteSheet: " + e );
-                 }
-                 //  Create the animation
-                 try {
-                   Skullhead.bitmapAnim = new createjs.BitmapAnimation(spriteSheet);
-                 } catch(e) {
-                   errorMsg("Error creating bitmapAnim: " + e );
-                 }
-
-                 Skullhead.bitmapAnim.name = "Skullhead";
-                 Skullhead.bitmapAnim.vX = 4;
-                 Skullhead.bitmapAnim.currentFrame = 0;
-
-                 Skullhead.bitmapAnim.scaleX = Skullhead.defaultScale;
-                 Skullhead.bitmapAnim.scaleY = Skullhead.defaultScale;
-                 try {
-                   stage.addChild(Skullhead.bitmapAnim);
-                 } catch(e) { 
-                   errorMsg( "stage.addChild(stage.addChild(bitmapAnim); error:" + e ); 
-                 }
-
-                 Skullhead.bitmapAnim.gotoAndPlay("walk"); 
-
-                 imagesToLoad += 1;
-
-                 Skullhead.walkingTo = true;
-                 Skullhead.walkTo( screen_height/2, screen_width/2 ); 
-               },
-
-grow: function (scaleFactor) {
         var timeNow = new Date().getTime() / 1000;
-        var tDelta = timeNow  - this.lastGrowMessage;
+        var tDelta = timeNow  - lastWalkMessage;
 
-        this.walkingTo = false;
-        this.growing   = true;    
-        this.bitmapAnim.scaleX = scaleFactor;
-        this.bitmapAnim.scaleY = scaleFactor;
+        growing   = false;
+        walkingTo = true;
 
-        if (tDelta  < this.minGrowCallsTime ) { return }
+        bitmapAnim.scaleX = defaultScale;
+        bitmapAnim.scaleY = defaultScale;
 
-        this.lastGrowMessage = timeNow;
-        this.bitmapAnim.gotoAndPlay("grow"); 
+        // Actual movement is based on clock ticks; it's not "real time".
+        // That means that instead of just moving the sprite to the new location in
+        // a single smooth action, we instead set the desired new location X and Y.
+        // tick() then invokes move() which will (ulitmately) use these properties
+        // to step the sprite to a new location. 
+        desiredX = parseInt(x);
+        desiredY = parseInt(y);
+
+        if (tDelta  < minGrowCallsTime ) { return }
+        lastWalkMessage = timeNow;
+        bitmapAnim.gotoAndPlay("walk"); 
       },
 
-x: function() {
-     if (this.bitmapAnim) {
-       return(this.bitmapAnim.x);
-     } else {
-       return 0;
-     }
-   },
+      onImageLoaded = function(evt) { 
+        var spriteSheet;
 
-y: function() {
-     if (this.bitmapAnim) {
-       return(this.bitmapAnim.y);
-     } else {
-       return 0;
-     }
-   },
+        try {
+          spriteSheet = new createjs.SpriteSheet({ images: [evt.target],
+              frames: { width: spriteWidth, height: spriteHeight, regX: spriteWidth/2, regY: spriteHeight }, 
+              animations: { walk: [0, 8, "walk", 6],
+              grow: [9, 20, "grow", 4]
+              } });
+        } catch(e) {
+          errorMsg("Error creating spriteSheet: " + e );
+        }
+        //  Create the animation
+        try {
+          bitmapAnim = new createjs.BitmapAnimation(spriteSheet);
+        } catch(e) {
+          errorMsg("Error creating bitmapAnim: " + e );
+        }
 
-init: function() {
-        this.spriteImage.onload = this.onImageLoaded;  
-        return this;
+        bitmapAnim.name = "Skullhead";
+        bitmapAnim.vX = 4;
+        bitmapAnim.currentFrame = 0;
+
+        bitmapAnim.scaleX = defaultScale;
+        bitmapAnim.scaleY = defaultScale;
+        try {
+          stage.addChild(bitmapAnim);
+        } catch(e) { 
+          errorMsg( "stage.addChild(stage.addChild(bitmapAnim); error:" + e ); 
+        }
+
+        bitmapAnim.gotoAndPlay("walk"); 
+
+        imagesToLoad += 1;
+
+        walkingTo = true;
+        walkTo( screen_height/2, screen_width/2 ); 
       },
 
-}.init();
+      grow = function(scaleFactor) {
+        var timeNow = new Date().getTime() / 1000;
+        var tDelta = timeNow  - lastGrowMessage;
+
+        walkingTo = false;
+        growing   = true;    
+
+        bitmapAnim.scaleX = scaleFactor;
+        bitmapAnim.scaleY = scaleFactor;
+
+        if (tDelta  < minGrowCallsTime ) { return }
+
+        lastGrowMessage = timeNow;
+        bitmapAnim.gotoAndPlay("grow"); 
+      },
+
+      x =  function() {
+        if (bitmapAnim) {
+          return(bitmapAnim.x);
+        } else {
+          return 0;
+        }
+      },
+
+      y = function() {
+        if (bitmapAnim) {
+          return(bitmapAnim.y);
+        } else {
+          return 0;
+        }
+      };
 
 
-Critter = {
+  spriteImage.onload = onImageLoaded;  
 
-bitmapAnim: null,
-            spriteImage:  new Image(),
-
-            haveCritter    : false,
-            showCritterCount : 0,
-            showCritterMax   : 250,
-            hideCritterCount : 0,
-            hideCritterMax   : 350,
-
-            loadImage : function(url) {
-              this.spriteImage.src   =  url
-            },
-
-show : function(){
-         if(!Critter.bitmapAnim){ return; }
-
-         if (!this.haveCritter) {
-           Critter.bitmapAnim.x = getRandomCritterX(); 
-           Critter.bitmapAnim.y = getRandomCritterY(); 
-           Critter.bitmapAnim.currentFrame = 0;
-           Critter.bitmapAnim.scaleX = 2.0;
-           Critter.bitmapAnim.scaleY = 2.0;
-
-           try {
-             stage.addChild(Critter.bitmapAnim);
-           } catch(e) { 
-             errorMsg( "stage.addChild(stage.addChild(Critter.bitmapAnim); error:" + e ); 
-           }
-           Critter.bitmapAnim.gotoAndPlay("walk"); 
-           this.haveCritter = true
-         }
-       },
-
-remove : function() {
-           this.showCritterCount = 0;
-
-           try {
-             stage.removeChild(Critter.bitmapAnim); 
-           } catch(e) { 
-             errorMsg( "stage.removeChild; error:" + e ); 
-           }
-           this.haveCritter = false;
-         },
+  return { x: x,
+    y: y,  
+    bitmapAnim: bitmapAnim,
+    grow: grow,
+    walkTo : walkTo,
+    loadImage: loadImage,
+    moveTo: moveTo,
+    isGrowing: isGrowing,
+    walkingTo: walkingTo,
+    move: move }
+}();
 
 
-move : function() {
+var Critter = function() {
 
-         // Check for a collision while Skullhead is growing.
-         // BTW, is it possible to just freeze the critter in place if you never have Skullhead stop growing?
-         if(Skullhead.growing){ 
-           var deltaX = Math.abs(Critter.bitmapAnim.x - Skullhead.bitmapAnim.x);
-           var deltaY = Math.abs(Critter.bitmapAnim.y - Skullhead.bitmapAnim.y);
-           if ( (deltaY < 35) && (deltaX < 35 ) ){
-             // Collision!
-             critterRunMusic.play();
-             Critter.bitmapAnim.scaleX = 6.0;
-             Critter.bitmapAnim.scaleY = 6.0;
-             Critter.bitmapAnim.gotoAndPlay("run"); 
-             this.showCritterCount = this.showCritterMax - 40;
+  var bitmapAnim = null,
+      spriteImage =  new Image(),
+      haveCritter     = false,
+      showCritterCount  = 0,
+      showCritterMax    = 250,
+      hideCritterCount  = 0,
+      hideCritterMax    = 350;
 
-             debug("showCritterCount = " + this.showCritterCount );
-             return;
-           }
-         } 
+  var loadImage   = function(url) {
+    spriteImage.src   =  url
+  },
 
-         if (Critter.bitmapAnim.x >= screen_width - (spriteWidth/2)) {
-           // We've reached the right side of our screen
-           // We need to walk left now to go back to our initial position
-           Critter.bitmapAnim.direction = -90;
-         }
+      show = function(){
+        if(!bitmapAnim){ 
+          console.log("Critter: no bitmapAnim!");
+          return; }
 
-         if (Critter.bitmapAnim.x < (spriteWidth/2)) {
-           // We've reached the left side of our screen
-           // We need to walk right now
-           Critter.bitmapAnim.direction = 90;
-         }
+          if (!haveCritter) {
+            bitmapAnim.x = getRandomCritterX(); 
+            bitmapAnim.y = getRandomCritterY(); 
+            bitmapAnim.currentFrame = 0;
+            bitmapAnim.scaleX = 2.0;
+            bitmapAnim.scaleY = 2.0;
 
-         // Moving the sprite based on the direction & the speed
-         if (Critter.bitmapAnim.direction == 90) {
-           Critter.bitmapAnim.x += Critter.bitmapAnim.vX;
-         }
-         else {
-           Critter.bitmapAnim.x -= Critter.bitmapAnim.vX;
-         }
-       },
+            try {
+              stage.addChild(bitmapAnim);
+            } catch(e) { 
+              errorMsg( "stage.addChild(stage.addChild(bitmapAnim); error:" + e ); 
+            }
+            bitmapAnim.gotoAndPlay("walk"); 
+            haveCritter = true
+          }
+      },
 
-onImageLoaded: function(evt) { 
+      remove  = function() {
+        showCritterCount = 0;
 
-                 var spriteSheet;
+        try {
+          stage.removeChild(bitmapAnim); 
+        } catch(e) { 
+          errorMsg( "stage.removeChild; error:" + e ); 
+        }
+        haveCritter = false;
+      },
 
-                 try {
-                   spriteSheet = new createjs.SpriteSheet({ images: [evt.target],
-                       frames: { width: spriteWidth, height: spriteHeight, regX: spriteWidth/2, regY: spriteHeight }, 
-                       animations: { walk: [0, 5, "walk", 20],
-                       run: [6, 11, "run", 12]
-                       } });
-                 } catch(e) {
-                   errorMsg("Error creating Critter spriteSheet: " + e );
-                 }
 
-                 try {
-                   Critter.bitmapAnim = new createjs.BitmapAnimation(spriteSheet);
-                 } catch(e) {
-                   errorMsg("Error creating Critter.bitmapAnim: " + e );
-                 }
+      move = function() {
+        // Check for a collision while Skullhead is growing.
+        if(Skullhead.isGrowing()){ 
+          var deltaX = Math.abs(bitmapAnim.x - Skullhead.x());
+          var deltaY = Math.abs(bitmapAnim.y - Skullhead.y());
+          if ( (deltaY < 35) && (deltaX < 35 ) ){
+            // Collision!
+            critterRunMusic.play();
+            bitmapAnim.scaleX = 6.0;
+            bitmapAnim.scaleY = 6.0;
+            bitmapAnim.gotoAndPlay("run"); 
+            showCritterCount = showCritterMax - 40;
+            return;
+          }
+        } 
 
-                 Critter.bitmapAnim.name = "Critter";
-                 Critter.bitmapAnim.vX = 5;
-                 Critter.bitmapAnim.direction = 90; // http://blogs.msdn.com/b/davrous/archive/2011/07/21/html5-gaming-animating-sprites-in-canvas-with-easeljs.aspx?Redirected=true
+        if (bitmapAnim.x >= screen_width - (spriteWidth/2)) {
+          // We've reached the right side of our screen
+          // We need to walk left now to go back to our initial position
+          bitmapAnim.direction = -90;
+        }
 
-                 Critter.bitmapAnim.currentFrame = 0;
-                 Critter.bitmapAnim.scaleX = 2.0;
-                 Critter.bitmapAnim.scaleY = 2.0;
+        if (bitmapAnim.x < (spriteWidth/2)) {
+          // We've reached the left side of our screen
+          // We need to walk right now
+          bitmapAnim.direction = 90;
+        }
 
-                 Critter.show();
-                 imagesToLoad += 1;
-               },
+        // Moving the sprite based on the direction & the speed
+        if (bitmapAnim.direction == 90) {
+          bitmapAnim.x += bitmapAnim.vX;
+        }
+        else {
+          bitmapAnim.x -= bitmapAnim.vX;
+        }
+      },
 
-init: function() {
-        this.spriteImage.onload = this.onImageLoaded;  
-        return this;
+      ready = function(){
+        if (bitmapAnim) { return true }
+        return false;
       }
 
-}.init();
+  onImageLoaded = function(evt) { 
+
+    var spriteSheet;
+
+    try {
+      spriteSheet = new createjs.SpriteSheet({ images: [evt.target],
+          frames: { width: spriteWidth, height: spriteHeight, regX: spriteWidth/2, regY: spriteHeight }, 
+          animations: { walk: [0, 5, "walk", 20],
+          run: [6, 11, "run", 12]
+          } });
+    } catch(e) {
+      errorMsg("Error creating Critter spriteSheet: " + e );
+    }
+
+    try {
+      bitmapAnim = new createjs.BitmapAnimation(spriteSheet);
+    } catch(e) {
+      errorMsg("Error creating Critter.bitmapAnim: " + e );
+    }
+
+    bitmapAnim.name = "Critter";
+    bitmapAnim.vX = 5;
+    bitmapAnim.direction = 90; 
+
+    bitmapAnim.currentFrame = 0;
+    bitmapAnim.scaleX = 2.0;
+    bitmapAnim.scaleY = 2.0;
+
+    haveCritter = false;
+    imagesToLoad += 1;
+  };
+
+
+  spriteImage.onload = onImageLoaded;  
+
+  return { loadImage: loadImage,
+    show: show,
+    remove: remove,
+    move: move,
+    ready: ready,
+    onImageLoaded: onImageLoaded,
+    haveCritter: haveCritter,
+    showCritterCount: showCritterCount,
+    showCritterMax: showCritterMax,
+    hideCritterCount: hideCritterCount,
+    hideCritterMax: hideCritterMax
+
+
+  };
+}();
 
 
 
@@ -358,23 +367,23 @@ function errorMsg(msg) {
 // LEAP
 function prepareLeap(){
   canvas = document.getElementById("gameCanvas");
-  context = canvas.getContext("2d")
-    controller = new Leap.Controller()
+  context = canvas.getContext("2d");
+  controller = new Leap.Controller();
 
-    // This seems to define a 3D area based on two opposite corners.
-    // X is left-right , y is up-down.  Y is never negative; 0 is the surface of the 
-    // detector.
-    //
-    // However, there seems to be trouble when you try to detect things close
-    // to y==0. 
-    var leftX =      parseInt($('#leftX').val());
-    var rightX =     parseInt($('#rightX').val());
+  // This defines a 3D area based on two opposite corners.
+  // X is left-right , y is up-down.  Y is never negative; 0 is the surface of the 
+  // detector.
+  //
+  // However, there seems to be trouble when you try to detect things close
+  // to y == 0. 
+  var leftX =      parseInt($('#leftX').val());
+  var rightX =     parseInt($('#rightX').val());
 
-    var bottomY =   parseInt($('#bottomY').val());
-    var topY =      parseInt($('#topY').val());
+  var bottomY =   parseInt($('#bottomY').val());
+  var topY =      parseInt($('#topY').val());
 
-// alert(leftX + "; " + rightX + "; " + bottomY + "; " + topY);
-    region = new Leap.UI.Region([leftX, bottomY, -100], [rightX, topY, 300])
+  // alert(leftX + "; " + rightX + "; " + bottomY + "; " + topY);
+  region = new Leap.UI.Region([leftX, bottomY, -100], [rightX, topY, 300])
     controller.addStep(new Leap.UI.Cursor())
 
 
@@ -387,9 +396,9 @@ function startGame() {
 
   try {
     prepareLeap();
-    } catch(e){
+  } catch(e){
     alert("Error prepping Leap controller: " + e );
-    }
+  }
 
   screen_width = canvas.width;
   screen_height = canvas.height;
@@ -404,9 +413,8 @@ function startGame() {
   background.onerror  =  handleImageError;
   background.src = "img/game_scene01BW.png";
   background.onload = onBackgroundLoaded;  
-
-  Critter.loadImage('img/critter-head-002.png');  
   Skullhead.loadImage('img/skull-head002.png');
+  Critter.loadImage('img/critter-head-002.png');  
 
   createjs.Ticker.addListener(window);
   createjs.Ticker.useRAF = true;
@@ -420,21 +428,20 @@ function startGame() {
 
 
   controller.loop(function(frame) {
-      debug("Loop!")
       if (frame.cursorPosition) {
-        var position = region.mapToXY(frame.cursorPosition, canvas.width, canvas.height)
-        if (1 == frame.fingers.length ) {
-          //  We need to map these values in the exact same way as leap.js does it. 
-          var position = region.mapToXY(frame.cursorPosition, canvas.width, canvas.height)
-          Handlers['walkto']( [position[0], position[1]] );
-        }
+      var position = region.mapToXY(frame.cursorPosition, canvas.width, canvas.height)
+      if (1 == frame.fingers.length ) {
+      //  We need to map these values in the exact same way as leap.js does it. 
+      var position = region.mapToXY(frame.cursorPosition, canvas.width, canvas.height)
+      Handlers['walkto']( [position[0], position[1]] );
+      }
 
-        if (2 == frame.fingers.length ) {
-          var v1 = new Vector.create(frame.fingers[0].tipPosition);
-          var v2 = new Vector.create(frame.fingers[1].tipPosition);
-          var d = v1.distanceFrom(v2) * 0.15;
-          Handlers['grow']( d );
-        }
+      if (2 == frame.fingers.length ) {
+      var v1 = new Vector.create(frame.fingers[0].tipPosition);
+      var v2 = new Vector.create(frame.fingers[1].tipPosition);
+      var d = v1.distanceFrom(v2) * 0.15;
+      Handlers['grow']( d );
+      }
       }
       })
 }
@@ -451,25 +458,35 @@ function tick() {
   // do we want to check that all resources have been loaded?
   // imagesLoaded == imagesToLoad
 
+  // No critter showing. Up the counter and if it reaches  aathreshold, show the critter
   if (!Critter.haveCritter) {
-
     Critter.hideCritterCount += 1;
-
     if ( Critter.hideCritterCount > Critter.hideCritterMax) { 
       Critter.show();
       Critter.haveCritter = true;
       Critter.hideCritterCount = 0;
+      Critter.showCritterCount = 0;
     }
+
   } else {
+    // We have a critter,  so up a different counter  ..
     Critter.hideCritterCount = 0; 
     Critter.showCritterCount += 1;
 
-    if (Critter.showCritterCount  > Critter.showCritterMax ) {
+    ///    and it reaches a threshold, hide the critter:
+    if ( Critter.showCritterCount  > Critter.showCritterMax ) {
       Critter.remove();
       Critter.haveCritter = false;
       Critter.hideCritterCount = 0;
+      Critter.showCritterCount = 0;
     } else {
-      if(Critter.bitmapAnim) { Critter.move(); }
+      // otherwise keep showing the critter and move it:
+      //
+      if (Critter.ready()) { 
+        Critter.move();
+      } else {
+        console.log(" ! Critter.ready");
+      }
     }
   }
 
@@ -500,13 +517,9 @@ function getRandomCritterY(){
   var skullheadY = Skullhead.y();
   if (skullheadY < (screen_height/2) ) {
     return getRandomInt(skullheadY, screen_height-100)
-      //  return( Math.floor(Math.random() * (skullheadY - 1) + 1) );
   }
   return getRandomInt(100, skullheadY)
-
 }
-
-
 
 
 function prepareAudio() {
@@ -541,25 +554,8 @@ function prepareAudio() {
 }
 
 $(document).ready(function() {
-    //    webSocket = new WebSocket("ws://127.0.0.1:8090");
-
-    //  try {
-    //webSocket.onmessage = function(evt) { processWsEvent(evt); };
-    // webSocket.onclose = function() { debug("socket closed"); };
-    //webSocket.onopen = function() {
-    //debug("connected...");
-    //webSocket.send("hello game server");
-    //};
-
-    //    } catch(e) {
-    //  alert("Error with WebSockets: " + e );
-    //}
-    //
-
-    
-
     prepareAudio();
-});
+    });
 
 
 
@@ -582,8 +578,6 @@ function processWsEvent(evt){
     //     alert("Error trying to dispatch '" + message.command + '" with args ' + message.args + "': " + e );
   }
 }
-
-
 
 
 var Handlers = new Object();
