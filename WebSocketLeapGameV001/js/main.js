@@ -120,8 +120,8 @@ onImageLoaded: function(evt) {
                       Skullhead.bitmapAnim.vX = 4;
                       Skullhead.bitmapAnim.currentFrame = 0;
 
-                      Skullhead.bitmapAnim.scaleX = 2.0;
-                      Skullhead.bitmapAnim.scaleY = 2.0;
+                      Skullhead.bitmapAnim.scaleX = Skullhead.defaultScale;
+                      Skullhead.bitmapAnim.scaleY = Skullhead.defaultScale;
                       try {
                         stage.addChild(Skullhead.bitmapAnim);
                       } catch(e) { 
@@ -137,18 +137,19 @@ onImageLoaded: function(evt) {
                     },
 
 grow: function (scaleFactorArray) {
-         var timeNow = new Date().getTime() / 1000;
-         var tDelta = timeNow  - this.lastGrowMessage;
+  var timeNow = new Date().getTime() / 1000;
+  var tDelta = timeNow  - this.lastGrowMessage;
 
-         this.walkingTo = false;
-         this.growing   = true;    
-         this.bitmapAnim.scaleX = scaleFactorArray[0];
-         this.bitmapAnim.scaleY = scaleFactorArray[0];
+  this.walkingTo = false;
+  this.growing   = true;    
+  this.bitmapAnim.scaleX = scaleFactorArray[0];
+  this.bitmapAnim.scaleY = scaleFactorArray[0];
 
-         if (tDelta  < this.minGrowCallsTime ) { return }
-         this.lastGrowMessage = timeNow;
-         this.bitmapAnim.gotoAndPlay("grow"); 
-       },
+  if (tDelta  < this.minGrowCallsTime ) { return }
+  
+  this.lastGrowMessage = timeNow;
+  this.bitmapAnim.gotoAndPlay("grow"); 
+},
 
 x: function() {
       if (this.bitmapAnim) {

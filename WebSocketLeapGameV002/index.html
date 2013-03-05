@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Skullhead vs Critter: A Thrilling Leap Motion Demo (v.2)</title>
+    <style type="text/css" media="screen">
+      canvas  { 
+        display:block; 
+        border:1px solid black; 
+       
+        
+      } 
+      #canvasHolder {
+        float:left;
+      }
+
+      #controls {
+        width 50%;
+      margin: 5px 30px;
+       
+      float:right;
+    }
+
+    label {
+    
+    }
+    </style>
+
+    <script src='/js/jquery.1.3.2.min.js'></script>
+
+    <script src="/js/easeljs-0.5.0.min.js"></script>
+    <script src="/js/leap.js"></script>
+    <script src="/js/extra.js"></script>
+    <script src="/js/main.js"></script>
+
+    <script>
+
+    </script>
+  </head>
+
+  <body>
+    <header class="description"></header>
+    <div id="canvasHolder">
+      <canvas id="gameCanvas" width="664" height="664" style="background-color:#333">Your browser doesn't support canvas.</canvas>
+    </div>
+    <div id='controls'>
+      <label>Left X: <input type='text' value='-51'  id='leftX'  size='5' ></label>&#160;<label>Right X:<input type='text' value='100' id='rightX' size='5'></label>&#160;<br>
+      <label>Bottom Y: <input type='text' value='250'  id='bottomY' size='5'  ></label>&#160;<label>Top Y:<input type='text' value='300' id='topY'  size='5' ></label>&#160;<br>
+    <button id="Start" onclick=startGame();>Start</button>
+    </div>
+  </body>
+</html>
+
